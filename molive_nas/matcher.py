@@ -28,7 +28,7 @@ def _safe_output(config: Config, image: Path) -> Path:
     return parent / f"{image.stem}_MP.jpg"
 
 
-def scan(config: Config, db: Database) -> int:
+def scan(config: Config, db: Database, *, baseline_existing: bool = False) -> int:
     images: list[Path] = []
     videos_by_dir_stem: dict[tuple[Path, str], Path] = {}
 
@@ -48,9 +48,12 @@ def scan(config: Config, db: Database) -> int:
         if video is None:
             unmatched.append(image)
             continue
-        if min(db.observe_file(image, "image"), db.observe_file(video, "video")) < config.stable_seconds:
+        if not baseline_existing and min(
+            db.observe_file(image, "image"), db.observe_file(video, "video")
+        ) < config.stable_seconds:
             continue
-        db.enqueue(image, video, _safe_output(config, image), _fingerprint(image, video))
+        record = db.record_baseline if baseline_existing else db.enqueue
+        record(image, video, _safe_output(config, image), _fingerprint(image, video))
         enqueued += 1
 
     # 只对同名失败项做 Content Identifier 匹配，避免全库都调用 exiftool。
@@ -67,9 +70,12 @@ def scan(config: Config, db: Database) -> int:
             video = video_ids.get(cid)
             if not video:
                 continue
-            if min(db.observe_file(image, "image"), db.observe_file(video, "video")) < config.stable_seconds:
+            if not baseline_existing and min(
+                db.observe_file(image, "image"), db.observe_file(video, "video")
+            ) < config.stable_seconds:
                 continue
-            db.enqueue(image, video, _safe_output(config, image), _fingerprint(image, video))
+            record = db.record_baseline if baseline_existing else db.enqueue
+            record(image, video, _safe_output(config, image), _fingerprint(image, video))
             enqueued += 1
 
     log.info("scan complete: images=%d enqueued_candidates=%d", len(images), enqueued)

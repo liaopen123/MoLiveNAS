@@ -31,6 +31,11 @@ class Service:
         return resolved
 
     def process_once(self) -> int:
+        if self.config.baseline_on_first_run and self.db.metadata("baseline_completed") is None:
+            count = scan(self.config, self.db, baseline_existing=True)
+            self.db.set_metadata("baseline_completed", str(time.time()))
+            log.info("initial baseline complete: skipped_existing_pairs=%d", count)
+            return 0
         scan(self.config, self.db)
         jobs = self.db.pending()
         if not jobs:

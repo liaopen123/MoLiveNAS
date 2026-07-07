@@ -19,6 +19,8 @@ services:
       MOLIVE_USE_QSV: auto
       # HDR 安全优先：不把 HDR 静默转换成可能偏亮、偏色的 SDR。
       MOLIVE_ALLOW_HDR_SDR_FALLBACK: "false"
+      # 首次启动只登记现有照片；完成标记持久化后，未来新增照片才会转换。
+      MOLIVE_BASELINE_ON_FIRST_RUN: "true"
       TZ: Asia/Shanghai
     volumes:
       # 飞牛 iPhone 相册备份只读挂载，程序不会修改原片。

@@ -29,6 +29,10 @@ CREATE TABLE IF NOT EXISTS jobs (
   updated_at REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS jobs_status ON jobs(status);
+CREATE TABLE IF NOT EXISTS metadata (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 """
 
 
@@ -82,6 +86,26 @@ class Database:
                 "UPDATE jobs SET status='retry',error='output file was removed',updated_at=? WHERE id=?",
                 (now, row["id"]),
             )
+
+    def record_baseline(self, image: Path, video: Path, output: Path, fingerprint: str) -> None:
+        now = time.time()
+        self.connection().execute(
+            "INSERT INTO jobs(image_path,video_path,output_path,fingerprint,status,created_at,updated_at) "
+            "VALUES(?,?,?,?,?,?,?) "
+            "ON CONFLICT(fingerprint) DO UPDATE SET status='baseline',error=NULL,updated_at=excluded.updated_at",
+            (str(image), str(video), str(output), fingerprint, "baseline", now, now),
+        )
+
+    def metadata(self, key: str) -> str | None:
+        row = self.connection().execute("SELECT value FROM metadata WHERE key=?", (key,)).fetchone()
+        return str(row["value"]) if row else None
+
+    def set_metadata(self, key: str, value: str) -> None:
+        self.connection().execute(
+            "INSERT INTO metadata(key,value) VALUES(?,?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (key, value),
+        )
 
     def pending(self, limit: int = 100) -> list[sqlite3.Row]:
         return list(self.connection().execute(
