@@ -10,6 +10,11 @@ from molive_nas.matcher import scan
 
 
 class MatcherTests(unittest.TestCase):
+    def test_disappearing_file_is_not_fatal(self):
+        with tempfile.TemporaryDirectory() as directory:
+            db = Database(Path(directory) / "test.sqlite3")
+            self.assertEqual(db.observe_file(Path(directory) / "removed.heic", "image"), 0)
+
     def test_same_stem_pair_is_enqueued_after_stable_window(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

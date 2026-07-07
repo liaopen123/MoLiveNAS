@@ -53,7 +53,10 @@ class Database:
         return conn
 
     def observe_file(self, path: Path, kind: str) -> float:
-        stat = path.stat()
+        try:
+            stat = path.stat()
+        except FileNotFoundError:
+            return 0
         now = time.time()
         row = self.connection().execute("SELECT size,mtime,first_stable_seen FROM files WHERE path=?", (str(path),)).fetchone()
         if row and row["size"] == stat.st_size and row["mtime"] == stat.st_mtime:

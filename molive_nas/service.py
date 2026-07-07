@@ -38,9 +38,9 @@ class Service:
         with ThreadPoolExecutor(max_workers=self.config.workers, thread_name_prefix="convert") as pool:
             futures = {}
             for job in jobs:
-                self.db.mark(job["id"], "running")
                 future = pool.submit(
-                    convert,
+                    self._run_job,
+                    job["id"],
                     image=self._inside(job["image_path"], self.config.input_dir),
                     video=self._inside(job["video_path"], self.config.input_dir),
                     output=self._inside(job["output_path"], self.config.output_dir),
@@ -55,10 +55,16 @@ class Service:
                     self.db.mark(job["id"], "success", mode=report["mode"])
                     log.info("converted: %s (%s)", job["image_path"], report["mode"])
                 except Exception as exc:
-                    status = "retry" if job["attempts"] < 3 else "failed"
+                    attempt_number = job["attempts"] + 1
+                    status = "retry" if attempt_number < 3 else "failed"
                     self.db.mark(job["id"], status, error=str(exc)[-4000:])
                     log.exception("conversion failed: %s", job["image_path"])
         return len(jobs)
+
+    def _run_job(self, job_id: int, **kwargs):
+        # 只有线程池真正开始执行任务时，才标记 running 并增加尝试次数。
+        self.db.mark(job_id, "running")
+        return convert(**kwargs)
 
     def daemon(self) -> None:
         require_tools()

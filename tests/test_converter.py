@@ -21,6 +21,20 @@ class ConverterSafetyTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "requires Ultra HDR"):
                     prepare_jpeg(source, output, config)
 
+    def test_hdr_jpeg_with_explicit_sdr_fallback_is_not_copied(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "source.jpg"
+            output = Path(directory) / "output.jpg"
+            source.write_bytes(b"placeholder")
+            config = Config(allow_hdr_sdr_fallback=True)
+            with patch(
+                "molive_nas.converter.exif_json",
+                return_value={"Orientation": 1, "HDRGainMapVersion": "1.0"},
+            ), patch("molive_nas.converter.run") as mocked_run:
+                mode = prepare_jpeg(source, output, config)
+            self.assertEqual(mode, "jpeg-encode-once-sdr-hdr-source")
+            self.assertEqual(mocked_run.call_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

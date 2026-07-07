@@ -6,6 +6,7 @@ import os
 import shutil
 import tempfile
 import threading
+from functools import lru_cache
 from pathlib import Path
 
 from .commands import exif_json, ffprobe, run
@@ -17,10 +18,12 @@ log = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
+@lru_cache(maxsize=1)
 def _image_tool() -> str:
     return shutil.which("magick") or shutil.which("convert") or "magick"
 
 
+@lru_cache(maxsize=4)
 def _qsv_available(config: Config) -> bool:
     if config.use_qsv in {"0", "false", "no", "off"}:
         return False
@@ -39,7 +42,7 @@ def prepare_jpeg(source: Path, output: Path, config: Config) -> str:
             "HDR HEIC requires Ultra HDR conversion; refusing unsafe SDR fallback "
             "(set MOLIVE_ALLOW_HDR_SDR_FALLBACK=true only for explicit testing)"
         )
-    if source.suffix.lower() in {".jpg", ".jpeg"} and orientation == 1:
+    if source.suffix.lower() in {".jpg", ".jpeg"} and orientation == 1 and not source_has_hdr_gain_map:
         shutil.copyfile(source, output)
         return "jpeg-copy"
 
