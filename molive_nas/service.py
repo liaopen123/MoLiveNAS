@@ -30,11 +30,11 @@ class Service:
             raise ValueError(f"job path escapes configured root: {resolved}")
         return resolved
 
-    def process_once(self) -> None:
+    def process_once(self) -> int:
         scan(self.config, self.db)
         jobs = self.db.pending()
         if not jobs:
-            return
+            return 0
         with ThreadPoolExecutor(max_workers=self.config.workers, thread_name_prefix="convert") as pool:
             futures = {}
             for job in jobs:
@@ -58,6 +58,7 @@ class Service:
                     status = "retry" if job["attempts"] < 3 else "failed"
                     self.db.mark(job["id"], status, error=str(exc)[-4000:])
                     log.exception("conversion failed: %s", job["image_path"])
+        return len(jobs)
 
     def daemon(self) -> None:
         require_tools()
@@ -65,7 +66,11 @@ class Service:
         log.info("MoLive NAS started: input=%s output=%s", self.config.input_dir, self.config.output_dir)
         while True:
             try:
-                self.process_once()
+                processed = self.process_once()
             except Exception:
                 log.exception("scan cycle failed")
+                processed = 0
+            # 队列仍有积压时立即处理下一批；只在无任务时等待扫描周期。
+            if processed and self.db.pending(limit=1):
+                continue
             time.sleep(self.config.scan_interval)

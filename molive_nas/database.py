@@ -37,6 +37,10 @@ class Database:
         self.path = path
         self._local = threading.local()
         self.connection().executescript(SCHEMA)
+        self.connection().execute(
+            "UPDATE jobs SET status='retry',error='recovered after service restart',updated_at=? WHERE status='running'",
+            (time.time(),),
+        )
 
     def connection(self) -> sqlite3.Connection:
         conn = getattr(self._local, "conn", None)

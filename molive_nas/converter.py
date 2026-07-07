@@ -92,12 +92,14 @@ def prepare_video(
     compatible_audio = not audios or all(s.get("codec_name") == "aac" for s in audios)
     timestamp_us = _cover_timestamp_us(source, info)
 
-    if rotation == 0 and compatible_video and compatible_audio:
+    if rotation == 0 and compatible_video:
+        audio_args = ["-c:a", "copy"] if compatible_audio else ["-c:a", "aac", "-b:a", "192k"]
         run([
-            "ffmpeg", "-y", "-i", str(source), "-map", "0:v:0", "-map", "0:a?", "-c", "copy",
-            "-map_metadata", "0", "-movflags", "+faststart", "-brand", "mp42", str(output),
+            "ffmpeg", "-y", "-i", str(source), "-map", "0:v:0", "-map", "0:a?", "-c:v", "copy",
+            *audio_args, "-map_metadata", "0", "-movflags", "+faststart", "-brand", "mp42", str(output),
         ])
-        return "video-copy", timestamp_us
+        audio_mode = "audio-copy" if compatible_audio else "audio-aac"
+        return f"video-copy+{audio_mode}", timestamp_us
 
     filters = {90: "transpose=clock", 180: "hflip,vflip", 270: "transpose=cclock"}
     vf = filters.get(rotation)
@@ -152,11 +154,12 @@ def convert(
 
         image_mode = prepare_jpeg(image, jpeg, config)
         video_mode, timestamp_us = prepare_video(video, mp4, config, transcode_semaphore)
-        inject_xmp(jpeg, tagged, mp4.stat().st_size, timestamp_us)
         run([
             "exiftool", "-config", str(PROJECT_ROOT / ".exiftool_config"), "-overwrite_original",
-            "-MicroVideo=1", "-XiaomiMicroVideo=1", "-EmbeddedVideo=1", str(tagged),
+            "-MicroVideo=1", "-XiaomiMicroVideo=1", "-EmbeddedVideo=1", str(jpeg),
         ])
+        # ExifTool 可能会重写未注册的 XMP，因此 XMP 必须在所有 EXIF 操作完成后最后注入。
+        inject_xmp(jpeg, tagged, mp4.stat().st_size, timestamp_us)
 
         with final.open("wb") as target:
             for source in (tagged, mp4):
