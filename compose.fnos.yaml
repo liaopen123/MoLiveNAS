@@ -8,8 +8,8 @@ services:
       MOLIVE_INPUT: /input
       MOLIVE_OUTPUT: /output
       MOLIVE_DATA: /data
-      # 每小时检查一次新备份；队列有任务时仍会连续处理。
-      MOLIVE_SCAN_INTERVAL: "3600"
+      # 每天检查一次新备份；容器启动时会立即扫描，队列有任务时仍会连续处理。
+      MOLIVE_SCAN_INTERVAL: "86400"
       MOLIVE_STABLE_SECONDS: "120"
       MOLIVE_WORKERS: "2"
       MOLIVE_TRANSCODE_WORKERS: "1"
