@@ -27,7 +27,7 @@ services:
       - /vol1/1000/lph/iPhone/MobileBackup:/input:ro
       # 成品保存在与 MobileBackup 同级的 MotionPhoto 目录。
       - /vol1/1000/lph/iPhone/MotionPhoto:/output
-      - /vol1/1000/lph/MoLiveNAS-data:/data
+      - /vol1/1000/lph/molive/MoLiveNAS-data:/data
     ports:
       # 状态页仅供可信内网访问，不要直接映射到公网。
       - "8787:8787"
