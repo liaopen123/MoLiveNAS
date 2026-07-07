@@ -12,6 +12,13 @@ def _int(name: str, default: int) -> int:
         return default
 
 
+def _bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass(frozen=True)
 class Config:
     input_dir: Path = Path(os.getenv("MOLIVE_INPUT", "/input"))
@@ -25,6 +32,7 @@ class Config:
     video_crf: int = min(28, max(12, _int("MOLIVE_VIDEO_CRF", 17)))
     web_port: int = _int("MOLIVE_WEB_PORT", 8787)
     use_qsv: str = os.getenv("MOLIVE_USE_QSV", "auto").lower()
+    allow_hdr_sdr_fallback: bool = _bool("MOLIVE_ALLOW_HDR_SDR_FALLBACK", False)
 
     @property
     def database_path(self) -> Path:

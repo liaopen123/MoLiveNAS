@@ -7,7 +7,8 @@
 - 飞牛原片目录只读，永不删除或改写母版。
 - 视频方向正常时直接复制码流，只在旋转/编码不兼容时重编码。
 - JPEG 方向正常时不重编码；HEIC 或带 EXIF 旋转的图片只编码一次。
-- Apple HDR HEIC 当前会明确降级为 SDR JPEG，并清除无效 HDR Gain Map 声明；原始 HEIC 永久保留在只读母版目录。
+- Apple HDR HEIC 在 Ultra HDR 链路完成前默认拒绝转换，不会静默产生偏亮/偏色的 SDR 成品。
+- 仅用于明确测试时可设置 `MOLIVE_ALLOW_HDR_SDR_FALLBACK=true`；此时会清除原 HEIC 的 HDR、ICC 和 MakerNotes 声明。
 - SQLite 记录增量状态，失败可重试，输出使用原子替换。
 - 队列有积压时连续处理，只有队列清空后才等待下一个扫描周期。
 - 同时写入 Google Motion Photo Container XMP 与小米 MicroVideo 兼容字段。

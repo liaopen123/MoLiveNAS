@@ -34,6 +34,11 @@ def prepare_jpeg(source: Path, output: Path, config: Config) -> str:
     metadata = exif_json(source, "-Orientation", "-HDRGainMapVersion")
     orientation = int(metadata.get("Orientation", 1) or 1)
     source_has_hdr_gain_map = bool(metadata.get("HDRGainMapVersion"))
+    if source_has_hdr_gain_map and not config.allow_hdr_sdr_fallback:
+        raise ValueError(
+            "HDR HEIC requires Ultra HDR conversion; refusing unsafe SDR fallback "
+            "(set MOLIVE_ALLOW_HDR_SDR_FALLBACK=true only for explicit testing)"
+        )
     if source.suffix.lower() in {".jpg", ".jpeg"} and orientation == 1:
         shutil.copyfile(source, output)
         return "jpeg-copy"
@@ -43,7 +48,7 @@ def prepare_jpeg(source: Path, output: Path, config: Config) -> str:
         "-sampling-factor", "4:2:0", str(output),
     ])
     run([
-        "exiftool", "-overwrite_original", "-TagsFromFile", str(source), "-all:all", "-icc_profile",
+        "exiftool", "-overwrite_original", "-TagsFromFile", str(source), "-all:all", "--icc_profile", "--makernotes",
         "-Orientation#=1", "-XMP-HDRGainMap:all=", str(output),
     ], check=False)
     return "jpeg-encode-once-sdr-hdr-source" if source_has_hdr_gain_map else "jpeg-encode-once"
