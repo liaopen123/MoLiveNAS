@@ -1,0 +1,9 @@
+# Derived from the MIT-licensed live_motion_photos_convert project by AssassinJY.
+%Image::ExifTool::UserDefined = (
+    'Image::ExifTool::Exif::Main' => {
+        0x8897 => { Name => 'MicroVideo', Writable => 'int8u' },
+        0x889f => { Name => 'XiaomiMicroVideo', Writable => 'int8u' },
+        0x9a01 => { Name => 'EmbeddedVideo', Writable => 'int8u' },
+    },
+);
+1;
