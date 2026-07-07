@@ -1,0 +1,44 @@
+services:
+  molive-nas:
+    image: liaopen123/molive-nas:latest
+    container_name: molive-nas
+    restart: unless-stopped
+    user: "${PUID:-1000}:${PGID:-1000}"
+    environment:
+      MOLIVE_INPUT: /input
+      MOLIVE_OUTPUT: /output
+      MOLIVE_DATA: /data
+      MOLIVE_SCAN_INTERVAL: "300"
+      MOLIVE_STABLE_SECONDS: "120"
+      MOLIVE_WORKERS: "2"
+      MOLIVE_TRANSCODE_WORKERS: "1"
+      MOLIVE_JPEG_QUALITY: "96"
+      MOLIVE_VIDEO_CRF: "17"
+      MOLIVE_WEB_PORT: "8787"
+      MOLIVE_USE_QSV: auto
+      # HDR 安全优先：不把 HDR 静默转换成可能偏亮、偏色的 SDR。
+      MOLIVE_ALLOW_HDR_SDR_FALLBACK: "false"
+      TZ: Asia/Shanghai
+    volumes:
+      # 飞牛 iPhone 相册备份只读挂载，程序不会修改原片。
+      - /vol1/1000/lph/iPhone:/input:ro
+      # 成品仍保存在 iPhone/MotionPhoto，但从独立路径写入。
+      - /vol1/1000/lph/iPhone/MotionPhoto:/output
+      - /vol1/1000/lph/MoLiveNAS-data:/data
+    tmpfs:
+      # 在输入视图中遮住成品目录，防止每轮增量扫描再次读取输出。
+      - /input/MotionPhoto:size=1048576,mode=0555
+    ports:
+      # 状态页仅供可信内网访问，不要直接映射到公网。
+      - "8787:8787"
+    devices:
+      # Intel N5105 核显；不可用时程序会自动回退到软件编码。
+      - /dev/dri:/dev/dri
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8787/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
