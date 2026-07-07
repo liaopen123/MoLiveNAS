@@ -21,13 +21,10 @@ services:
       TZ: Asia/Shanghai
     volumes:
       # 飞牛 iPhone 相册备份只读挂载，程序不会修改原片。
-      - /vol1/1000/lph/iPhone:/input:ro
-      # 成品仍保存在 iPhone/MotionPhoto，但从独立路径写入。
+      - /vol1/1000/lph/iPhone/MobileBackup:/input:ro
+      # 成品保存在与 MobileBackup 同级的 MotionPhoto 目录。
       - /vol1/1000/lph/iPhone/MotionPhoto:/output
       - /vol1/1000/lph/MoLiveNAS-data:/data
-    tmpfs:
-      # 在输入视图中遮住成品目录，防止每轮增量扫描再次读取输出。
-      - /input/MotionPhoto:size=1048576,mode=0555
     ports:
       # 状态页仅供可信内网访问，不要直接映射到公网。
       - "8787:8787"
