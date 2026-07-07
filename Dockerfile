@@ -1,7 +1,7 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.13-slim-trixie
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    ffmpeg imagemagick libimage-exiftool-perl libheif-examples ca-certificates tini \
+    ffmpeg imagemagick libimage-exiftool-perl libheif-examples intel-media-va-driver ca-certificates tini \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

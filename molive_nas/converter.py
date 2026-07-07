@@ -31,8 +31,9 @@ def _qsv_available(config: Config) -> bool:
 
 
 def prepare_jpeg(source: Path, output: Path, config: Config) -> str:
-    metadata = exif_json(source, "-Orientation")
+    metadata = exif_json(source, "-Orientation", "-HDRGainMapVersion")
     orientation = int(metadata.get("Orientation", 1) or 1)
+    source_has_hdr_gain_map = bool(metadata.get("HDRGainMapVersion"))
     if source.suffix.lower() in {".jpg", ".jpeg"} and orientation == 1:
         shutil.copyfile(source, output)
         return "jpeg-copy"
@@ -43,9 +44,9 @@ def prepare_jpeg(source: Path, output: Path, config: Config) -> str:
     ])
     run([
         "exiftool", "-overwrite_original", "-TagsFromFile", str(source), "-all:all", "-icc_profile",
-        "-Orientation#=1", str(output),
+        "-Orientation#=1", "-XMP-HDRGainMap:all=", str(output),
     ], check=False)
-    return "jpeg-encode-once"
+    return "jpeg-encode-once-sdr-hdr-source" if source_has_hdr_gain_map else "jpeg-encode-once"
 
 
 def _rotation(stream: dict) -> int:
@@ -103,7 +104,10 @@ def prepare_video(
 
     filters = {90: "transpose=clock", 180: "hflip,vflip", 270: "transpose=cclock"}
     vf = filters.get(rotation)
-    command = ["ffmpeg", "-y", "-noautorotate", "-i", str(source), "-map", "0:v:0", "-map", "0:a?"]
+    command = [
+        "ffmpeg", "-y", "-noautorotate", "-display_rotation:v:0", "0", "-i", str(source),
+        "-map", "0:v:0", "-map", "0:a?",
+    ]
     if vf:
         command += ["-vf", vf]
     common_tail = [

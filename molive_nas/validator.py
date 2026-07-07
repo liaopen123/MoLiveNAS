@@ -46,6 +46,19 @@ def validate(path: Path) -> dict:
         videos = [stream for stream in info.get("streams", []) if stream.get("codec_type") == "video"]
         if not videos:
             raise ValueError("embedded file has no video track")
-        return {"size": size, "video_size": length, "codec": videos[0].get("codec_name")}
+        rotation = 0
+        for side_data in videos[0].get("side_data_list", []):
+            if "rotation" in side_data:
+                rotation = int(round(float(side_data["rotation"]))) % 360
+        if rotation:
+            raise ValueError(f"embedded video still carries a {rotation}-degree rotation matrix")
+        return {
+            "size": size,
+            "video_size": length,
+            "codec": videos[0].get("codec_name"),
+            "width": videos[0].get("width"),
+            "height": videos[0].get("height"),
+            "rotation": rotation,
+        }
     finally:
         temp.unlink(missing_ok=True)
