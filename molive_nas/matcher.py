@@ -23,9 +23,9 @@ def _fingerprint(image: Path, video: Path) -> str:
 
 def _safe_output(config: Config, image: Path) -> Path:
     relative = image.relative_to(config.input_dir)
-    parent = config.output_dir / relative.parent
-    parent.mkdir(parents=True, exist_ok=True)
-    return parent / f"{image.stem}_MP.jpg"
+    digest = hashlib.sha256(str(relative).encode()).hexdigest()[:8]
+    config.output_dir.mkdir(parents=True, exist_ok=True)
+    return config.output_dir / f"{image.stem}_{digest}_MP.jpg"
 
 
 def scan(config: Config, db: Database, *, baseline_existing: bool = False) -> int:

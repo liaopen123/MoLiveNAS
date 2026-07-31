@@ -30,8 +30,11 @@ class MatcherTests(unittest.TestCase):
             db = Database(data / "test.sqlite3")
             scan(config, db)
             self.assertEqual(db.stats().get("pending"), 1)
+            job = db.pending()[0]
+            self.assertEqual(Path(job["output_path"]).parent, output)
+            self.assertTrue(Path(job["output_path"]).name.startswith("IMG_0001_"))
 
-    def test_removed_output_is_requeued(self):
+    def test_removed_output_is_not_requeued_after_success(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             db = Database(root / "test.sqlite3")
@@ -44,7 +47,31 @@ class MatcherTests(unittest.TestCase):
             db.mark(job["id"], "success")
             output.unlink()
             db.enqueue(image, video, output, "fingerprint")
-            self.assertEqual(db.stats().get("retry"), 1)
+            self.assertIsNone(db.stats().get("retry"))
+            self.assertEqual(db.stats().get("success"), 1)
+
+    def test_flat_outputs_do_not_collide_for_same_name_in_different_dirs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            output = root / "output"
+            data = root / "data"
+            first = source / "2024"
+            second = source / "2025"
+            first.mkdir(parents=True)
+            second.mkdir(parents=True)
+            output.mkdir()
+            data.mkdir()
+            for folder in (first, second):
+                (folder / "IMG_0001.HEIC").write_bytes(b"image")
+                (folder / "IMG_0001.MOV").write_bytes(b"video")
+            config = Config(input_dir=source, output_dir=output, data_dir=data, stable_seconds=0)
+            db = Database(data / "test.sqlite3")
+            scan(config, db)
+            paths = [Path(job["output_path"]) for job in db.pending()]
+            self.assertEqual(len(paths), 2)
+            self.assertEqual({path.parent for path in paths}, {output})
+            self.assertEqual(len({path.name for path in paths}), 2)
 
 
 if __name__ == "__main__":

@@ -81,11 +81,6 @@ class Database:
         row = self.connection().execute(
             "SELECT id,status,output_path FROM jobs WHERE fingerprint=?", (fingerprint,)
         ).fetchone()
-        if row and row["status"] == "success" and not Path(row["output_path"]).exists():
-            self.connection().execute(
-                "UPDATE jobs SET status='retry',error='output file was removed',updated_at=? WHERE id=?",
-                (now, row["id"]),
-            )
 
     def record_baseline(self, image: Path, video: Path, output: Path, fingerprint: str) -> None:
         now = time.time()
