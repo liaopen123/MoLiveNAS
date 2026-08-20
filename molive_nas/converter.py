@@ -18,6 +18,10 @@ log = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
+class UnsupportedMediaError(ValueError):
+    pass
+
+
 @lru_cache(maxsize=1)
 def _image_tool() -> str:
     return shutil.which("magick") or shutil.which("convert") or "magick"
@@ -38,7 +42,7 @@ def prepare_jpeg(source: Path, output: Path, config: Config) -> str:
     orientation = int(metadata.get("Orientation", 1) or 1)
     source_has_hdr_gain_map = bool(metadata.get("HDRGainMapVersion"))
     if source_has_hdr_gain_map and not config.allow_hdr_sdr_fallback:
-        raise ValueError(
+        raise UnsupportedMediaError(
             "HDR HEIC requires Ultra HDR conversion; refusing unsafe SDR fallback "
             "(set MOLIVE_ALLOW_HDR_SDR_FALLBACK=true only for explicit testing)"
         )

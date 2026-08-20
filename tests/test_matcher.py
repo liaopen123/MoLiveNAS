@@ -50,6 +50,20 @@ class MatcherTests(unittest.TestCase):
             self.assertIsNone(db.stats().get("retry"))
             self.assertEqual(db.stats().get("success"), 1)
 
+    def test_existing_hdr_failures_are_migrated_to_unsupported(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            db = Database(root / "test.sqlite3")
+            image, video, output = root / "a.heic", root / "a.mov", root / "a_MP.jpg"
+            db.enqueue(image, video, output, "fingerprint")
+            job = db.pending()[0]
+            db.mark(job["id"], "failed", error="HDR HEIC requires Ultra HDR conversion")
+
+            restarted = Database(root / "test.sqlite3")
+
+            self.assertEqual(restarted.stats().get("unsupported"), 1)
+            self.assertIsNone(restarted.stats().get("failed"))
+
     def test_flat_outputs_do_not_collide_for_same_name_in_different_dirs(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

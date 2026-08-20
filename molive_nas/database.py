@@ -45,6 +45,11 @@ class Database:
             "UPDATE jobs SET status='retry',error='recovered after service restart',updated_at=? WHERE status='running'",
             (time.time(),),
         )
+        self.connection().execute(
+            "UPDATE jobs SET status='unsupported',updated_at=? "
+            "WHERE status IN ('failed','retry') AND error LIKE '%HDR HEIC requires Ultra HDR conversion%'",
+            (time.time(),),
+        )
 
     def connection(self) -> sqlite3.Connection:
         conn = getattr(self._local, "conn", None)
@@ -78,9 +83,6 @@ class Database:
             "INSERT OR IGNORE INTO jobs(image_path,video_path,output_path,fingerprint,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?)",
             (str(image), str(video), str(output), fingerprint, "pending", now, now),
         )
-        row = self.connection().execute(
-            "SELECT id,status,output_path FROM jobs WHERE fingerprint=?", (fingerprint,)
-        ).fetchone()
 
     def record_baseline(self, image: Path, video: Path, output: Path, fingerprint: str) -> None:
         now = time.time()

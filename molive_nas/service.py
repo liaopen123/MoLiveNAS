@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .commands import require_tools
 from .config import Config
-from .converter import convert
+from .converter import UnsupportedMediaError, convert
 from .database import Database
 from .matcher import scan
 from .web import start as start_web
@@ -59,6 +59,9 @@ class Service:
                     report = future.result()
                     self.db.mark(job["id"], "success", mode=report["mode"])
                     log.info("converted: %s (%s)", job["image_path"], report["mode"])
+                except UnsupportedMediaError as exc:
+                    self.db.mark(job["id"], "unsupported", error=str(exc)[-4000:])
+                    log.warning("unsupported media skipped: %s (%s)", job["image_path"], exc)
                 except Exception as exc:
                     attempt_number = job["attempts"] + 1
                     status = "retry" if attempt_number < 3 else "failed"

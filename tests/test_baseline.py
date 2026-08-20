@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from molive_nas.config import Config
+from molive_nas.converter import UnsupportedMediaError
 from molive_nas.service import Service
 
 
@@ -44,6 +45,21 @@ class BaselineTests(unittest.TestCase):
                 convert.assert_called_once()
             self.assertEqual(restarted_service.db.stats().get("success"), 1)
             self.assertEqual(restarted_service.db.stats().get("baseline"), 1)
+
+    def test_unsupported_hdr_is_skipped_without_retrying(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, output, data = root / "source", root / "output", root / "data"
+            source.mkdir()
+            create_pair(source, "IMG_HDR")
+            config = Config(input_dir=source, output_dir=output, data_dir=data, stable_seconds=0)
+            service = Service(config)
+
+            with patch("molive_nas.service.convert", side_effect=UnsupportedMediaError("HDR HEIC")):
+                self.assertEqual(service.process_once(), 1)
+
+            self.assertEqual(service.db.stats().get("unsupported"), 1)
+            self.assertEqual(service.db.pending(), [])
 
 
 if __name__ == "__main__":

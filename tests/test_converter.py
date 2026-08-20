@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from molive_nas.config import Config
-from molive_nas.converter import prepare_jpeg
+from molive_nas.converter import UnsupportedMediaError, prepare_jpeg
 
 
 class ConverterSafetyTests(unittest.TestCase):
@@ -18,7 +18,7 @@ class ConverterSafetyTests(unittest.TestCase):
                 "molive_nas.converter.exif_json",
                 return_value={"Orientation": 1, "HDRGainMapVersion": "0.2.0.0"},
             ):
-                with self.assertRaisesRegex(ValueError, "requires Ultra HDR"):
+                with self.assertRaisesRegex(UnsupportedMediaError, "requires Ultra HDR"):
                     prepare_jpeg(source, output, config)
 
     def test_hdr_jpeg_with_explicit_sdr_fallback_is_not_copied(self):
