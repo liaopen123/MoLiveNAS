@@ -53,6 +53,25 @@ class ConverterSafetyTests(unittest.TestCase):
             self.assertEqual(mode, "jpeg-ultrahdr")
             bridge.assert_called_once_with(source, video, output, config)
 
+    def test_hdr_heic_falls_back_to_sdr_when_bridge_fails_and_fallback_is_allowed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "source.heic"
+            video = Path(directory) / "source.mov"
+            output = Path(directory) / "output.jpg"
+            source.write_bytes(b"placeholder")
+            video.write_bytes(b"video")
+            config = Config(enable_ultra_hdr=True, allow_hdr_sdr_fallback=True)
+            with patch(
+                "molive_nas.converter.exif_json",
+                return_value={"Orientation": 1, "HDRGainMapVersion": "0.2.0.0"},
+            ), patch(
+                "molive_nas.converter.prepare_ultrahdr_jpeg",
+                side_effect=UnsupportedMediaError("bridge failed"),
+            ), patch("molive_nas.converter.run") as mocked_run:
+                mode = prepare_jpeg(source, output, config, video)
+            self.assertEqual(mode, "jpeg-encode-once-sdr-hdr-source")
+            self.assertEqual(mocked_run.call_count, 2)
+
     def test_existing_ultrahdr_jpeg_is_copied_without_reencoding(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "source.HEIC"

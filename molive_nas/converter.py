@@ -101,7 +101,11 @@ def prepare_jpeg(source: Path, output: Path, config: Config, video: Path | None 
         shutil.copyfile(source, output)
         return "jpeg-copy-ultrahdr"
     if source_has_hdr_gain_map and config.enable_ultra_hdr and video is not None and not source_is_jpeg:
-        return prepare_ultrahdr_jpeg(source, video, output, config)
+        try:
+            return prepare_ultrahdr_jpeg(source, video, output, config)
+        except UnsupportedMediaError:
+            if not config.allow_hdr_sdr_fallback:
+                raise
     if source_has_hdr_gain_map and not config.allow_hdr_sdr_fallback:
         raise UnsupportedMediaError(
             "HDR HEIC requires Ultra HDR conversion; refusing unsafe SDR fallback "
