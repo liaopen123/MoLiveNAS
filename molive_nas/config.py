@@ -32,6 +32,8 @@ class Config:
     video_crf: int = min(28, max(12, _int("MOLIVE_VIDEO_CRF", 17)))
     web_port: int = _int("MOLIVE_WEB_PORT", 8787)
     use_qsv: str = os.getenv("MOLIVE_USE_QSV", "auto").lower()
+    enable_ultra_hdr: bool = _bool("MOLIVE_ENABLE_ULTRA_HDR", True)
+    ultrahdr_bridge: str = os.getenv("MOLIVE_ULTRAHDR_BRIDGE", "aa-photo-bridge")
     allow_hdr_sdr_fallback: bool = _bool("MOLIVE_ALLOW_HDR_SDR_FALLBACK", False)
     baseline_on_first_run: bool = _bool("MOLIVE_BASELINE_ON_FIRST_RUN", False)
 

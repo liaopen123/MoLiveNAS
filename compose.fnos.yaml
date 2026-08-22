@@ -17,6 +17,8 @@ services:
       MOLIVE_VIDEO_CRF: "17"
       MOLIVE_WEB_PORT: "8787"
       MOLIVE_USE_QSV: auto
+      # HDR HEIC 转为 Ultra HDR JPEG；失败时不会静默降级成 SDR。
+      MOLIVE_ENABLE_ULTRA_HDR: "true"
       # HDR 安全优先：不把 HDR 静默转换成可能偏亮、偏色的 SDR。
       MOLIVE_ALLOW_HDR_SDR_FALLBACK: "false"
       # 首次启动只登记现有照片；完成标记持久化后，未来新增照片才会转换。
