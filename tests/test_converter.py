@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from molive_nas.config import Config
-from molive_nas.converter import UnsupportedMediaError, prepare_jpeg
+from molive_nas.converter import UnsupportedMediaError, prepare_jpeg, prepare_video
 
 JPEG_HEADER = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00"
 
@@ -86,6 +86,32 @@ class ConverterSafetyTests(unittest.TestCase):
             self.assertEqual(mode, "jpeg-copy-ultrahdr")
             self.assertEqual(output.read_bytes(), source.read_bytes())
             mocked_run.assert_not_called()
+
+    def test_iphone_negative_rotation_is_burned_in_clockwise(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "source.mov"
+            output = Path(directory) / "output.mp4"
+            source.write_bytes(b"placeholder")
+            config = Config(use_qsv="false")
+            probe = {
+                "format": {"duration": "1.0"},
+                "streams": [
+                    {
+                        "codec_type": "video",
+                        "codec_name": "hevc",
+                        "side_data_list": [{"rotation": -90}],
+                    }
+                ],
+            }
+            with patch("molive_nas.converter.ffprobe", return_value=probe), patch(
+                "molive_nas.converter._cover_timestamp_us", return_value=0
+            ), patch("molive_nas.converter.run") as mocked_run:
+                mode, timestamp_us = prepare_video(source, output, config)
+            command = mocked_run.call_args.args[0]
+            self.assertEqual(mode, "video-transcode-libx264-rotation-270")
+            self.assertEqual(timestamp_us, 0)
+            self.assertIn("-vf", command)
+            self.assertEqual(command[command.index("-vf") + 1], "transpose=clock")
 
 
 if __name__ == "__main__":

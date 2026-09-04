@@ -50,6 +50,11 @@ def validate(path: Path) -> dict:
         for side_data in videos[0].get("side_data_list", []):
             if "rotation" in side_data:
                 rotation = int(round(float(side_data["rotation"]))) % 360
+        if not rotation:
+            try:
+                rotation = int(videos[0].get("tags", {}).get("rotate", 0)) % 360
+            except (TypeError, ValueError):
+                rotation = 0
         if rotation:
             raise ValueError(f"embedded video still carries a {rotation}-degree rotation matrix")
         return {

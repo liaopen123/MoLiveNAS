@@ -179,7 +179,7 @@ def prepare_video(
         audio_mode = "audio-copy" if compatible_audio else "audio-aac"
         return f"video-copy+{audio_mode}", timestamp_us
 
-    filters = {90: "transpose=clock", 180: "hflip,vflip", 270: "transpose=cclock"}
+    filters = {90: "transpose=cclock", 180: "hflip,vflip", 270: "transpose=clock"}
     vf = filters.get(rotation)
     command = [
         "ffmpeg", "-y", "-noautorotate", "-display_rotation:v:0", "0", "-i", str(source),
